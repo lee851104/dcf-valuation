@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCF Valuation — 股票估值工具</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background: #F5F5F7; min-height: 100vh;
+  color: #1C1C1E; font-size: 15px;
+}
+:root {
+  --blue: #007AFF; --blue-light: #E3F0FF;
+  --green: #34C759; --green-dark: #248A3D; --green-light: #E8F5E9;
+  --red: #FF3B30; --red-light: #FFE8E8;
+  --border: #D1D1D6; --muted: #8E8E93; --label: #6C6C70;
+}
+
+/* ── topbar ── */
+.topbar {
+  background: rgba(255,255,255,0.88); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px; display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo-text { font-size: 17px; font-weight: bold; color: var(--blue); }
+.logo-sub  { font-size: 15px; font-weight: bold; color: var(--muted); }
+
+.container { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+
+/* ── progress bar ── */
+.progress-bar { display: flex; align-items: center; margin-bottom: 36px; }
+.step-dot {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  font-size: 13px; font-weight: bold; flex-shrink: 0;
+  transition: all 0.3s; cursor: pointer;
+}
+.step-dot.done     { background: var(--green); color: #fff; }
+.step-dot.active   { background: var(--blue); color: #fff; box-shadow: 0 0 0 4px var(--blue-light); }
+.step-dot.inactive { background: var(--border); color: var(--muted); cursor: default; }
+.step-line { flex: 1; height: 3px; border-radius: 2px; transition: background 0.3s; }
+.step-line.done     { background: var(--green); }
+.step-line.inactive { background: var(--border); }
+
+/* ── cards ── */
+.step-card {
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 28px; margin-bottom: 16px;
+  display: none; animation: fadeIn 0.25s ease;
+}
+.step-card.visible { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+.step-card.completed { padding: 16px 22px; }
+.step-card.completed .step-overlay { cursor: pointer; }
+.step-card.completed .step-overlay:hover { opacity: 0.85; }
+
+/* 摘要層：預設隱藏，completed 時顯示 */
+.step-overlay {
+  display: none;
+  align-items: center; gap: 14px; width: 100%;
+}
+.step-card.completed .step-overlay { display: flex; }
+/* 內容層：completed 時隱藏 */
+.step-card.completed .card-body { display: none; }
+
+.completed-icon {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--green); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.cs-title { font-size: 13px; color: var(--label); }
+.cs-val   { font-size: 15px; font-weight: bold; color: var(--blue); }
+.completed-edit { font-size: 12px; color: var(--blue); font-weight: bold; flex-shrink: 0; }
+
+/* ── step header ── */
+.step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  font-size: 13px; font-weight: bold; margin-bottom: 10px;
+}
+.step-title { font-size: 22px; font-weight: bold; color: #1C1C1E; margin-bottom: 6px; line-height: 1.3; }
+.step-desc  { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 22px; }
+
+.section-lbl {
+  font-size: 12px; font-weight: bold; color: var(--label);
+  text-transform: uppercase; letter-spacing: 0.4px;
+  margin: 20px 0 10px;
+}
+.section-lbl:first-of-type { margin-top: 0; }
+
+/* ── inputs ── */
+.ticker-wrap { display: flex; gap: 10px; }
+.big-input {
+  flex: 1; border: 2px solid var(--border); border-radius: 10px;
+  padding: 14px 18px; font-size: 24px; font-weight: bold;
+  outline: none; text-transform: uppercase; transition: border-color 0.2s;
+}
+.big-input:focus { border-color: var(--blue); }
+.big-input::placeholder { color: #C7C7CC; }
+
+.btn-primary {
+  padding: 14px 22px; background: var(--blue); color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 15px; font-weight: bold; cursor: pointer;
+  transition: background 0.2s; white-space: nowrap;
+}
+.btn-primary:hover { background: #0062CC; }
+.btn-primary:disabled { background: var(--border); cursor: not-allowed; }
+
+.btn-next {
+  display: block; padding: 13px 28px;
+  background: var(--blue); color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 15px; font-weight: bold;
+  cursor: pointer; margin-top: 24px;
+  transition: background 0.2s;
+}
+.btn-next:hover { background: #0062CC; }
+
+.btn-back {
+  padding: 10px 20px; background: transparent; color: var(--blue);
+  border: 2px solid var(--blue); border-radius: 10px;
+  font-size: 14px; font-weight: bold;
+  cursor: pointer; margin-top: 12px; margin-right: 10px;
+}
+.btn-back:hover { background: var(--blue-light); }
+
+.error-msg {
+  color: var(--red); font-size: 13px; margin-top: 10px;
+  padding: 10px 14px; background: var(--red-light);
+  border-radius: 8px; display: none;
+}
+.error-msg.show { display: block; }
+
+/* ── year buttons ── */
+.year-group { display: flex; gap: 10px; }
+.year-btn {
+  flex: 1; padding: 12px 8px;
+  border: 2px solid var(--border); border-radius: 10px;
+  background: #fff; font-size: 16px; font-weight: bold;
+  cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.year-btn:hover { border-color: var(--blue); }
+.year-btn.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+.year-btn .yb-sub { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; font-weight: normal; }
+.year-btn.selected .yb-sub { color: var(--blue); }
+
+/* ── company card ── */
+.company-card { margin-top: 20px; display: none; }
+.company-card.show { display: block; }
+.company-name { font-size: 18px; font-weight: bold; margin-bottom: 16px; }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stat-box {
+  background: #F5F5F7; border-radius: 10px;
+  padding: 12px 14px; border: 1px solid var(--border);
+}
+.stat-box.highlight { background: var(--blue-light); border-color: #99C8FF; }
+.s-lbl { font-size: 11px; color: var(--label); font-weight: bold; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.s-val { font-size: 20px; font-weight: bold; }
+.s-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.editable-val {
+  font-size: 20px; font-weight: bold; border: none; background: transparent;
+  width: 100%; outline: none; color: var(--blue);
+}
+.editable-val:focus { border-bottom: 2px solid var(--blue); }
+
+/* ── warn banner ── */
+.warn-banner {
+  background: #FFF9E6; border: 1px solid #FFE082;
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 13px; color: #7B5800;
+  margin-top: 10px; display: none;
+}
+.warn-banner.show { display: block; }
+
+/* ── formula box ── */
+.formula-box {
+  background: #F0F4FF; border: 1px solid #C0D4FF;
+  border-radius: 10px; padding: 14px 18px;
+  margin-bottom: 20px; font-size: 14px;
+  color: #1C1C1E; line-height: 1.9;
+}
+.formula-title {
+  font-size: 11px; font-weight: bold; color: var(--blue);
+  text-transform: uppercase; letter-spacing: 0.4px;
+  margin-bottom: 8px; font-family: sans-serif;
+}
+
+/* ── rate buttons ── */
+.rate-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.rate-btn {
+  padding: 10px 16px; border: 2px solid var(--border);
+  border-radius: 10px; background: #fff; cursor: pointer;
+  text-align: center; transition: all 0.15s;
+  font-size: 16px; font-weight: bold;
+}
+.rate-btn:hover { border-color: var(--blue); }
+.rate-btn.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+.rate-btn .rb-sub { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; font-weight: normal; }
+.rate-btn.selected .rb-sub { color: var(--blue); }
+
+/* ── param input row ── */
+.input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.input-lbl { font-size: 14px; color: var(--label); flex: 1; min-width: 140px; }
+.param-input {
+  border: 2px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; font-size: 16px; font-weight: bold;
+  width: 110px; text-align: center; outline: none;
+}
+.param-input:focus { border-color: var(--blue); }
+.input-unit { font-size: 14px; color: var(--label); }
+
+/* ── FCF table ── */
+.fcf-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
+.fcf-table th {
+  padding: 8px 12px; text-align: right;
+  font-size: 11px; font-weight: bold; color: var(--label);
+  text-transform: uppercase; background: #F5F5F7;
+  border-bottom: 1px solid var(--border);
+}
+.fcf-table th:first-child { text-align: left; }
+.fcf-table td { padding: 8px 12px; text-align: right; border-bottom: 1px solid #F5F5F7; }
+.fcf-table td:first-child { text-align: left; color: var(--muted); font-weight: bold; }
+.fcf-table tr:hover td { background: #FAFAFA; }
+.fcf-table tr.year0 td { color: var(--muted); }
+
+/* ── sum block ── */
+.sum-block {
+  background: #F5F5F7; border-radius: 10px;
+  padding: 14px 16px; margin-top: 14px;
+  font-size: 14px; line-height: 2.2;
+}
+.sum-row { display: flex; justify-content: space-between; align-items: center; }
+.sum-divider { height: 1px; background: var(--border); margin: 6px 0; }
+.sum-total { font-size: 17px; font-weight: bold; }
+
+/* ── result cards ── */
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+.result-card { border-radius: 12px; padding: 16px; text-align: center; }
+.rc-green { background: var(--green-light); border: 1px solid #C8E6C9; }
+.rc-blue  { background: var(--blue-light);  border: 1px solid #99C8FF; }
+.rc-gray  { background: #F5F5F7; border: 1px solid var(--border); }
+.rc-lbl { font-size: 11px; font-weight: bold; color: var(--label); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+.rc-val { font-size: 24px; font-weight: bold; }
+.rc-val.green { color: var(--green-dark); }
+.rc-val.blue  { color: var(--blue); }
+.rc-val.gray  { color: #1C1C1E; }
+.rc-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── verdict ── */
+.verdict-banner {
+  border-radius: 12px; padding: 22px 24px;
+  text-align: center; margin-bottom: 20px;
+}
+.vb-under { background: var(--green-light); border: 2px solid var(--green); }
+.vb-over  { background: var(--red-light);   border: 2px solid var(--red); }
+.verdict-pct  { font-size: 52px; font-weight: bold; line-height: 1; }
+.vb-under .verdict-pct  { color: var(--green-dark); }
+.vb-over  .verdict-pct  { color: var(--red); }
+.verdict-text { font-size: 17px; font-weight: bold; margin-top: 8px; }
+.vb-under .verdict-text { color: var(--green-dark); }
+.vb-over  .verdict-text { color: var(--red); }
+.verdict-sub  { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+/* ── price ruler ── */
+.price-ruler {
+  background: #F5F5F7; border-radius: 12px;
+  padding: 18px 20px 70px; margin-bottom: 16px; position: relative;
+}
+.pr-title { font-size: 12px; font-weight: bold; color: var(--label); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 14px; }
+.ruler-track { display: flex; height: 28px; border-radius: 8px; overflow: hidden; }
+.z-under { background: linear-gradient(90deg, #A5D6A7, #C8F7C5); }
+.z-over  { background: linear-gradient(90deg, #FFE0E0, #FFCDD2); }
+.ruler-pin {
+  position: absolute; top: 34px;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center;
+  pointer-events: none;
+}
+.pin-line  { width: 2px; height: 28px; }
+.pin-lbl   { margin-top: 5px; font-size: 11px; font-weight: bold; line-height: 1.4; text-align: center; white-space: nowrap; }
+.pin-price { font-size: 13px; font-weight: bold; }
+/* 兩個 pin 靠近時，目前股價往下錯開 */
+.pin-lbl.offset-down { margin-top: 32px; }
+
+/* ── collapsible hint ── */
+.hint-toggle {
+  font-size: 12px; color: var(--blue); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-bottom: 8px; user-select: none;
+}
+.hint-toggle:hover { text-decoration: underline; }
+.hint-body { display: none; }
+.hint-body.open { display: block; }
+
+/* ── FCF bar chart ── */
+.fcf-bars { margin-top: 14px; }
+.fcf-bar-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.fcf-bar-lbl { font-size: 12px; color: var(--muted); font-weight: bold; width: 72px; flex-shrink: 0; }
+.fcf-bar-track { flex: 1; height: 22px; background: #F0F0F3; border-radius: 6px; overflow: hidden; }
+.fcf-bar-fill { height: 100%; border-radius: 6px; transition: width 0.3s; }
+.fcf-bar-val { font-size: 12px; font-weight: bold; width: 80px; flex-shrink: 0; text-align: right; }
+
+/* ── spinner ── */
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid #fff; border-top-color: transparent;
+  border-radius: 50%; animation: spin 0.6s linear infinite;
+  vertical-align: middle; margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo-text">DCF</span>
+  <span class="logo-sub">Valuation</span>
+</div>
+
+<div class="container">
+
+  <!-- Progress bar: 6 steps -->
+  <div class="progress-bar">
+    <div class="step-dot active"   id="dot1" onclick="dotClick(1)">1</div>
+    <div class="step-line inactive" id="line1"></div>
+    <div class="step-dot inactive"  id="dot2" onclick="dotClick(2)">2</div>
+    <div class="step-line inactive" id="line2"></div>
+    <div class="step-dot inactive"  id="dot3" onclick="dotClick(3)">3</div>
+    <div class="step-line inactive" id="line3"></div>
+    <div class="step-dot inactive"  id="dot4" onclick="dotClick(4)">4</div>
+    <div class="step-line inactive" id="line4"></div>
+    <div class="step-dot inactive"  id="dot5" onclick="dotClick(5)">5</div>
+    <div class="step-line inactive" id="line5"></div>
+    <div class="step-dot inactive"  id="dot6" onclick="dotClick(6)">6</div>
+  </div>
+
+  <!-- ══ Step 1：股票資料 ══ -->
+  <div class="step-card visible" id="card1">
+    <div class="step-overlay" id="overlay1"></div>
+    <div class="card-body">
+    <div class="step-num">1</div>
+    <div class="step-title">你想評估哪一支股票？</div>
+    <div class="step-desc">輸入代碼後系統會從 Yahoo Finance 抓取財務數據。WACC 可另行點按鈕從 GuruFocus 抓取，或直接手動輸入。</div>
+
+    <div class="ticker-wrap">
+      <input class="big-input" type="text" id="tickerInput" placeholder="例如 NVDA" maxlength="10"
+        onkeydown="if(event.key==='Enter') doFetch()">
+      <button class="btn-primary" id="fetchBtn" onclick="doFetch()">抓取數據</button>
+    </div>
+    <div class="error-msg" id="fetchError"></div>
+
+    <div class="company-card" id="companyCard">
+      <div class="company-name" id="companyName"></div>
+
+      <div class="section-lbl" style="margin-top:0;">預測年數</div>
+      <div class="year-group">
+        <button class="year-btn" onclick="selectYears(this,3)">3 年<span class="yb-sub">成熟穩定</span></button>
+        <button class="year-btn selected" onclick="selectYears(this,5)">5 年<span class="yb-sub">一般預期</span></button>
+        <button class="year-btn" onclick="selectYears(this,7)">7 年<span class="yb-sub">高成長期</span></button>
+      </div>
+
+      <div class="warn-banner" id="fcfWarn">⚠️ 無法自動取得 FCF，請手動輸入（單位：百萬）。</div>
+
+      <div class="section-lbl">財務數據（可手動修改）</div>
+      <div class="stat-grid">
+        <div class="stat-box highlight">
+          <div class="s-lbl">自由現金流 FCF（TTM）</div>
+          <div class="s-val">
+            <input class="editable-val" type="number" id="fcfInput" placeholder="手動輸入">
+          </div>
+          <div class="s-sub">百萬 <span id="currencyLabel">USD</span>（可修改）</div>
+        </div>
+        <div class="stat-box highlight">
+          <div class="s-lbl">WACC（即折現率）</div>
+          <div class="s-val" style="display:flex;align-items:center;gap:6px;">
+            <input class="editable-val" type="number" id="waccInput" placeholder="手動輸入" step="0.01" style="flex:1;">
+            <span style="font-size:16px;font-weight:bold;color:var(--muted);">%</span>
+            <button id="waccBtn" onclick="fetchWACC()"
+              style="font-size:11px;padding:4px 8px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">
+              從 GuruFocus 抓取
+            </button>
+          </div>
+          <div class="s-sub" id="waccSub">可手動輸入或點按鈕抓取</div>
+        </div>
+        <div class="stat-box">
+          <div class="s-lbl">目前股價</div>
+          <div class="s-val" id="priceDisplay">—</div>
+          <div class="s-sub">USD　今日市場報價</div>
+        </div>
+        <div class="stat-box">
+          <div class="s-lbl">帳上現金 + 短期投資</div>
+          <div class="s-val">
+            <input class="editable-val" type="number" id="cashInput" placeholder="0" style="color:#1C1C1E;">
+          </div>
+          <div class="s-sub">百萬</div>
+        </div>
+        <div class="stat-box">
+          <div class="s-lbl">總負債</div>
+          <div class="s-val">
+            <input class="editable-val" type="number" id="debtInput" placeholder="0" style="color:var(--red);">
+          </div>
+          <div class="s-sub">百萬</div>
+        </div>
+        <div class="stat-box">
+          <div class="s-lbl">流通在外股數</div>
+          <div class="s-val">
+            <input class="editable-val" type="number" id="sharesInput" placeholder="手動輸入" style="color:#1C1C1E;">
+          </div>
+          <div class="s-sub">百萬股</div>
+        </div>
+      </div>
+
+      <div class="error-msg" id="step1Error"></div>
+      <button class="btn-next" onclick="step1Next()">下一步：預測未來現金流 →</button>
+    </div>
+    </div><!-- /card-body -->
+  </div>
+
+  <!-- ══ Step 2：預測N年現金流 ══ -->
+  <div class="step-card" id="card2">
+    <div class="step-overlay" id="overlay2"></div>
+    <div class="card-body">
+    <div class="step-num">2</div>
+    <div class="step-title">預測未來 <span id="s2Years">5</span> 年現金流</div>
+    <div class="step-desc">設定年成長率，系統依複利計算每一年的預期自由現金流。</div>
+
+    <div class="formula-box">
+      <div class="formula-title">公式</div>
+      FCF<sub>n</sub> = FCF<sub>0</sub> &times; (1 + g)<sup>n</sup>
+    </div>
+
+    <div class="section-lbl">年成長率 g</div>
+    <div class="rate-group" id="g1Presets">
+      <button class="rate-btn" onclick="setG1(this,10)">10%<span class="rb-sub">穩定</span></button>
+      <button class="rate-btn" onclick="setG1(this,15)">15%<span class="rb-sub">成長</span></button>
+      <button class="rate-btn" onclick="setG1(this,20)">20%<span class="rb-sub">快速</span></button>
+      <button class="rate-btn" onclick="setG1(this,25)">25%<span class="rb-sub">高速</span></button>
+      <button class="rate-btn" onclick="setG1(this,30)">30%<span class="rb-sub">極速</span></button>
+    </div>
+    <div class="input-row">
+      <span class="input-lbl">自訂成長率</span>
+      <input class="param-input" type="number" id="g1Input" value="15" min="0" max="200" step="0.1"
+        oninput="syncG1(parseFloat(this.value))">
+      <span class="input-unit">%</span>
+      <span id="waccHint" style="font-size:12px;color:var(--muted);"></span>
+    </div>
+
+    <div id="fcfTableWrap"></div>
+
+    <button class="btn-next" onclick="goToStep(3)">下一步：計算終值 →</button>
+    </div><!-- /card-body -->
+  </div>
+
+  <!-- ══ Step 3：終值 ══ -->
+  <div class="step-card" id="card3">
+    <div class="step-overlay" id="overlay3"></div>
+    <div class="card-body">
+    <div class="step-num">3</div>
+    <div class="step-title">計算終值（Terminal Value）</div>
+    <div class="step-desc">預測期結束後，公司以穩定速度永久成長，所有未來現金流的折現加總即為終值。</div>
+
+    <div class="formula-box">
+      <div class="formula-title">Gordon Growth Model</div>
+      TV = FCF<sub>N</sub> &times; (1 + g<sub>T</sub>) &divide; (r &minus; g<sub>T</sub>)
+    </div>
+
+    <div class="section-lbl">折現率 r（使用 WACC，可修改）</div>
+    <div class="hint-toggle" onclick="toggleHint('rHint')">▶ 這個數字代表什麼？</div>
+    <div class="hint-body formula-box" id="rHint" style="font-size:13px;line-height:1.8;margin-bottom:14px;">
+      折現率 = <strong>你對這筆錢的機會成本</strong>，也就是「不買這支股票，你能從其他地方賺到多少？」<br>
+      <span style="color:var(--muted);">
+        1–3%　→　銀行定存利率，幾乎無風險<br>
+        6–8%　→　市場指數平均報酬（如 S&amp;P 500）<br>
+        10–15%　→　一般股票投資人期望報酬<br>
+        30%+　→　你預期這支股票短期大漲（標準越高，合理股價越低）
+      </span><br>
+      <strong>客觀建議：直接使用 WACC</strong>，代表市場對這間公司資金成本的估算。
+    </div>
+    <div class="input-row">
+      <span class="input-lbl">折現率 r</span>
+      <input class="param-input" type="number" id="rInput" value="12" min="1" max="50" step="0.5"
+        oninput="syncR(parseFloat(this.value))">
+      <span class="input-unit">%</span>
+      <span id="rWaccHint" style="font-size:12px;color:var(--muted);"></span>
+    </div>
+
+    <div class="section-lbl">永久成長率 g<sub>T</sub>（後五年固定成長）</div>
+    <div class="hint-toggle" onclick="toggleHint('gtHint')">▶ 這個數字代表什麼？</div>
+    <div class="hint-body" id="gtHint" style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:12px;">
+      預測期結束後，假設公司長期穩定成長的速度。<br>
+      <span style="color:var(--label);">2.5%　→　保守估計，接近全球 GDP 長期平均</span><br>
+      <span style="color:var(--label);">4%　→　預設值，適合仍有成長空間的公司</span>
+    </div>
+    <div class="input-row">
+      <span class="input-lbl">永久成長率 gT</span>
+      <input class="param-input" type="number" id="gtInput" value="4" min="0" max="10" step="0.5"
+        oninput="updateTV()">
+      <span class="input-unit">%</span>
+    </div>
+
+    <div class="error-msg" id="tvError"></div>
+    <div id="tvResultWrap"></div>
+
+    <button class="btn-next" onclick="goToStep(4)">下一步：計算企業價值 →</button>
+    </div><!-- /card-body -->
+  </div>
+
+  <!-- ══ Step 4：企業價值 EV ══ -->
+  <div class="step-card" id="card4">
+    <div class="step-overlay" id="overlay4"></div>
+    <div class="card-body">
+    <div class="step-num">4</div>
+    <div class="step-title">計算企業價值（EV）</div>
+    <div class="step-desc">將每年預測現金流與終值，分別折現回今天，加總即為企業價值。</div>
+
+    <div class="formula-box">
+      <div class="formula-title">公式</div>
+      EV = &sum; [ FCF<sub>n</sub> &divide; (1+r)<sup>n</sup> ] + TV &divide; (1+r)<sup>N</sup>
+    </div>
+
+    <div id="evTableWrap"></div>
+    <div id="evSumWrap"></div>
+
+    <button class="btn-next" onclick="goToStep(5)">下一步：轉換為股權價值 →</button>
+    </div><!-- /card-body -->
+  </div>
+
+  <!-- ══ Step 5：股權價值 ══ -->
+  <div class="step-card" id="card5">
+    <div class="step-overlay" id="overlay5"></div>
+    <div class="card-body">
+    <div class="step-num">5</div>
+    <div class="step-title">企業價值 → 股權價值（E）</div>
+    <div class="step-desc">加上帳上現金、扣除負債，得到屬於股東的價值。</div>
+
+    <div class="formula-box">
+      <div class="formula-title">公式</div>
+      股權價值 E = EV + 現金及短期投資 &minus; 總負債
+    </div>
+
+    <div class="section-lbl">確認數值（可修改）</div>
+    <div class="input-row">
+      <span class="input-lbl">帳上現金 + 短期投資</span>
+      <input class="param-input" type="number" id="cashInput2" step="1" oninput="updateEquity()" style="width:130px;">
+      <span class="input-unit">百萬</span>
+    </div>
+    <div class="input-row">
+      <span class="input-lbl">總負債</span>
+      <input class="param-input" type="number" id="debtInput2" step="1" oninput="updateEquity()" style="width:130px;">
+      <span class="input-unit">百萬</span>
+    </div>
+
+    <div id="equityResultWrap"></div>
+
+    <button class="btn-next" onclick="goToStep(6)">下一步：計算合理股價 →</button>
+    </div><!-- /card-body -->
+  </div>
+
+  <!-- ══ Step 6：合理股價 ══ -->
+  <div class="step-card" id="card6">
+    <div class="step-overlay" id="overlay6"></div>
+    <div class="card-body">
+    <div class="step-num">6</div>
+    <div class="step-title">合理股價</div>
+    <div class="step-desc">將股東權益除以流通在外股數，得出每股 DCF 內在價值。</div>
+
+    <div class="formula-box">
+      <div class="formula-title">公式</div>
+      合理股價 = 股權價值 E &divide; 流通在外股數
+    </div>
+
+    <div class="section-lbl">確認流通在外股數（可修改）</div>
+    <div class="input-row">
+      <span class="input-lbl">流通在外股數</span>
+      <input class="param-input" type="number" id="sharesInput2" step="1" oninput="updateFairPrice()" style="width:130px;">
+      <span class="input-unit">百萬股</span>
+    </div>
+
+    <div id="fairPriceWrap"></div>
+
+    <button class="btn-back" onclick="goToStep(1)">← 重新開始</button>
+    </div><!-- /card-body -->
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ═══════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════
+let currentStep = 1;
+const TOTAL = 6;
+
+let state = {
+  ticker: '', name: '', price: 0,
+  fcfM: 0, cashM: 0, debtM: 0, sharesM: 0,
+  currency: 'USD', wacc: null,
+  years: 5, g1: 15, r: 12, gt: 4,
+  // calculated
+  projFCFs: [],     // [{year, fcf}]  — dollars
+  tv: 0, pvTv: 0,
+  discFCFs: [],     // [{year, fcf, df, pv}]
+  sumPvFcf: 0, ev: 0, equity: 0, fairPrice: 0,
+};
+
+// ═══════════════════════════════════════════
+// Format helpers
+// ═══════════════════════════════════════════
+function fmtLarge(v) {
+  if (v == null || isNaN(v)) return '—';
+  const abs = Math.abs(v), s = v < 0 ? '-' : '';
+  if (abs >= 1e12) return s + '$' + (abs / 1e12).toFixed(2) + 'T';
+  if (abs >= 1e9)  return s + '$' + (abs / 1e9).toFixed(2) + 'B';
+  if (abs >= 1e6)  return s + '$' + (abs / 1e6).toFixed(2) + 'M';
+  if (abs >= 1e3)  return s + '$' + (abs / 1e3).toFixed(1) + 'K';
+  return s + '$' + abs.toFixed(0);
+}
+function fmtPrice(v) {
+  if (v == null || isNaN(v)) return '—';
+  return '$' + v.toFixed(2);
+}
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return '—';
+  return (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%';
+}
+
+// ═══════════════════════════════════════════
+// Step 1 — fetch
+// ═══════════════════════════════════════════
+async function doFetch() {
+  const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+  if (!ticker) return;
+
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>抓取中…';
+  document.getElementById('fetchError').classList.remove('show');
+
+  try {
+    const resp = await fetch('/api/fetch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker }),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      document.getElementById('fetchError').textContent = data.error;
+      document.getElementById('fetchError').classList.add('show');
+      return;
+    }
+
+    state.ticker   = data.ticker;
+    state.name     = data.name;
+    state.price    = data.price  || 0;
+    state.fcfM     = data.fcf    ? data.fcf    / 1e6 : 0;
+    state.cashM    = data.cash   ? data.cash   / 1e6 : 0;
+    state.debtM    = data.debt   ? data.debt   / 1e6 : 0;
+    state.sharesM  = data.shares ? data.shares / 1e6 : 0;
+    state.currency = data.currency || 'USD';
+    state.wacc     = data.wacc || 10;
+    if (data.growthNextYear != null) {
+      state.g1 = data.growthNextYear;
+      document.getElementById('g1Input').value = state.g1;
+      document.getElementById('waccHint').textContent = `← Yahoo Finance 預估`;
+      document.querySelectorAll('#g1Presets .rate-btn').forEach(b => {
+        b.classList.toggle('selected', parseFloat(b.textContent) === state.g1);
+      });
+    }
+
+    document.getElementById('companyName').textContent = `${data.name}（${data.ticker}）`;
+    document.getElementById('priceDisplay').textContent = data.price ? fmtPrice(data.price) : '—';
+    document.getElementById('currencyLabel').textContent = data.currency || 'USD';
+
+    // 自動填入 WACC
+    document.getElementById('waccInput').value = state.wacc;
+    document.getElementById('waccSub').textContent = data.wacc
+      ? `✓ 來自 GuruFocus（可修改）`
+      : `⚠ 無法取得 WACC，已預設 10%（可修改）`;
+
+    if (state.fcfM) {
+      document.getElementById('fcfInput').value = Math.round(state.fcfM);
+    } else {
+      document.getElementById('fcfWarn').classList.add('show');
+    }
+    document.getElementById('cashInput').value   = Math.round(state.cashM)   || '';
+    document.getElementById('debtInput').value   = Math.round(state.debtM)   || '';
+    document.getElementById('sharesInput').value = Math.round(state.sharesM) || '';
+
+    document.getElementById('companyCard').classList.add('show');
+  } catch (err) {
+    document.getElementById('fetchError').textContent = '連線失敗：' + err.message;
+    document.getElementById('fetchError').classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '重新抓取';
+  }
+}
+
+async function fetchWACC() {
+  if (!state.ticker) { alert('請先抓取股票數據！'); return; }
+  const btn = document.getElementById('waccBtn');
+  const sub = document.getElementById('waccSub');
+  btn.disabled = true;
+  btn.textContent = '抓取中…';
+  sub.textContent = '正在連接 GuruFocus…';
+  try {
+    const resp = await fetch('/api/wacc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker: state.ticker }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      state.wacc = 10;
+      document.getElementById('waccInput').value = 10;
+      sub.textContent = data.error + '，已預設填入 10%';
+    } else {
+      state.wacc = data.wacc;
+      document.getElementById('waccInput').value = data.wacc;
+      sub.textContent = `✓ 來自 GuruFocus（可修改）`;
+    }
+  } catch (err) {
+    state.wacc = 10;
+    document.getElementById('waccInput').value = 10;
+    sub.textContent = '連線失敗，已預設填入 10%';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '從 GuruFocus 抓取';
+  }
+}
+
+function selectYears(btn, n) {
+  document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.years = n;
+}
+
+function step1Next() {
+  const errEl = document.getElementById('step1Error');
+  errEl.classList.remove('show');
+
+  state.fcfM   = parseFloat(document.getElementById('fcfInput').value)    || 0;
+  state.cashM  = parseFloat(document.getElementById('cashInput').value)   || 0;
+  state.debtM  = parseFloat(document.getElementById('debtInput').value)   || 0;
+  state.sharesM= parseFloat(document.getElementById('sharesInput').value) || 0;
+  const w = parseFloat(document.getElementById('waccInput').value);
+  if (!isNaN(w)) state.wacc = w;
+
+  if (!state.fcfM) {
+    errEl.textContent = '請輸入自由現金流（FCF）！';
+    errEl.classList.add('show');
+    return;
+  }
+  if (state.sharesM <= 0) {
+    errEl.textContent = '請輸入流通股數！';
+    errEl.classList.add('show');
+    return;
+  }
+
+  goToStep(2);
+}
+
+// ═══════════════════════════════════════════
+// Step 2 — FCF projection
+// ═══════════════════════════════════════════
+function setG1(btn, val) {
+  document.querySelectorAll('#g1Presets .rate-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.g1 = val;
+  document.getElementById('g1Input').value = val;
+  renderFCFTable();
+}
+
+function syncG1(val) {
+  state.g1 = val || 0;
+  document.querySelectorAll('#g1Presets .rate-btn').forEach(b => {
+    b.classList.toggle('selected', parseFloat(b.textContent) === state.g1);
+  });
+  renderFCFTable();
+}
+
+function renderFCFTable() {
+  const g = state.g1 / 100;
+  const fcf0 = state.fcfM * 1e6;
+  const rows = [];
+  let fcf = fcf0;
+  for (let n = 1; n <= state.years; n++) {
+    fcf = fcf * (1 + g);
+    rows.push({ year: n, fcf });
+  }
+  state.projFCFs = rows;
+  document.getElementById('s2Years').textContent = state.years;
+
+  const allFCFs = [{ year: 0, fcf: fcf0 }, ...rows];
+  const maxFCF = Math.max(...allFCFs.map(r => r.fcf));
+
+  let html = '<div class="fcf-bars">';
+  allFCFs.forEach(r => {
+    const pct = maxFCF > 0 ? (r.fcf / maxFCF) * 100 : 0;
+    const isNeg = r.fcf < 0;
+    const color = r.year === 0
+      ? '#8E8E93'
+      : `hsl(${210 - (r.year / state.years) * 30}, 80%, ${55 - (r.year / state.years) * 10}%)`;
+    const lbl = r.year === 0 ? '現在' : `第 ${r.year} 年`;
+    html += `
+      <div class="fcf-bar-row">
+        <div class="fcf-bar-lbl">${lbl}</div>
+        <div class="fcf-bar-track">
+          <div class="fcf-bar-fill" style="width:${Math.abs(pct)}%;background:${isNeg ? 'var(--red)' : color};"></div>
+        </div>
+        <div class="fcf-bar-val" style="color:${isNeg ? 'var(--red)' : (r.year === 0 ? 'var(--muted)' : 'var(--blue)')}">${fmtLarge(r.fcf)}</div>
+      </div>`;
+  });
+  html += '</div>';
+  document.getElementById('fcfTableWrap').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+// Step 3 — Terminal Value
+// ═══════════════════════════════════════════
+function setR(btn, val) {
+  document.querySelectorAll('#rPresets .rate-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.r = val;
+  document.getElementById('rInput').value = val;
+  updateTV();
+}
+
+function syncR(val) {
+  state.r = val || 12;
+  document.querySelectorAll('#rPresets .rate-btn').forEach(b => {
+    b.classList.toggle('selected', parseFloat(b.textContent) === state.r);
+  });
+  updateTV();
+}
+
+function updateTV() {
+  const r  = parseFloat(document.getElementById('rInput').value)  / 100;
+  const gt = parseFloat(document.getElementById('gtInput').value) / 100;
+  state.r  = r  * 100;
+  state.gt = gt * 100;
+
+  const errEl = document.getElementById('tvError');
+  errEl.classList.remove('show');
+
+  if (r <= gt) {
+    errEl.textContent = `折現率 r (${(r*100).toFixed(1)}%) 必須大於永久成長率 gT (${(gt*100).toFixed(1)}%)`;
+    errEl.classList.add('show');
+    document.getElementById('tvResultWrap').innerHTML = '';
+    return;
+  }
+  if (!state.projFCFs.length) return;
+
+  // TV 基礎取使用者選定年數（years）的 FCF，折現也回到第 years 年
+  const fcfN = state.projFCFs[state.years - 1].fcf;
+  state.tv   = fcfN * (1 + gt) / (r - gt);
+  state.pvTv = state.tv / Math.pow(1 + r, state.years);
+
+  document.getElementById('tvResultWrap').innerHTML = `
+    <div class="sum-block">
+      <div class="sum-row"><span>FCF 第 ${state.years} 年</span><span><strong>${fmtLarge(fcfN)}</strong></span></div>
+      <div class="sum-row"><span>永久成長率 gT</span><span>${state.gt}%</span></div>
+      <div class="sum-row"><span>折現率 r</span><span>${state.r}%</span></div>
+      <div class="sum-divider"></div>
+      <div class="sum-row sum-total">
+        <span>終值 TV</span>
+        <span style="color:var(--blue);">${fmtLarge(state.tv)}</span>
+      </div>
+      <div class="sum-row" style="color:var(--muted);font-size:13px;">
+        <span>終值現值 PV(TV) = TV &divide; (1+r)<sup>${state.years}</sup></span>
+        <span><strong>${fmtLarge(state.pvTv)}</strong></span>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════
+// Step 4 — Enterprise Value
+// ═══════════════════════════════════════════
+function calcAndRenderEV() {
+  if (!state.projFCFs.length || !state.tv) return;
+  const r = state.r / 100;
+
+  state.discFCFs = state.projFCFs.map(row => {
+    const df = 1 / Math.pow(1 + r, row.year);
+    return { year: row.year, fcf: row.fcf, df, pv: row.fcf * df };
+  });
+  state.sumPvFcf = state.discFCFs.reduce((s, x) => s + x.pv, 0);
+  state.ev = state.sumPvFcf + state.pvTv;
+
+  let rows = '';
+  state.discFCFs.forEach(row => {
+    rows += `<tr>
+      <td>第 ${row.year} 年 FCF</td>
+      <td style="text-align:right;">${fmtLarge(row.fcf)}</td>
+      <td style="text-align:right;color:var(--muted);">${row.df.toFixed(4)}</td>
+      <td style="text-align:right;font-weight:bold;">${fmtLarge(row.pv)}</td>
+    </tr>`;
+  });
+  const pvTvDf = (1 / Math.pow(1 + r, state.years)).toFixed(4);
+  rows += `<tr>
+    <td>終值 TV（第 ${state.years} 年後）</td>
+    <td style="text-align:right;">${fmtLarge(state.tv)}</td>
+    <td style="text-align:right;color:var(--muted);">${pvTvDf}</td>
+    <td style="text-align:right;font-weight:bold;color:var(--blue);">${fmtLarge(state.pvTv)}</td>
+  </tr>`;
+
+  document.getElementById('evTableWrap').innerHTML = `
+    <table class="fcf-table">
+      <thead><tr>
+        <th>項目</th><th>金額</th><th>折現因子 1/(1+r)<sup>n</sup></th><th>現值 PV</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  document.getElementById('evSumWrap').innerHTML = `
+    <div class="sum-block">
+      <div class="sum-row"><span>Σ FCF 現值合計</span><span><strong>${fmtLarge(state.sumPvFcf)}</strong></span></div>
+      <div class="sum-row"><span>終值現值 PV(TV)</span><span><strong>${fmtLarge(state.pvTv)}</strong></span></div>
+      <div class="sum-divider"></div>
+      <div class="sum-row sum-total">
+        <span>企業價值 EV</span>
+        <span style="color:var(--blue);">${fmtLarge(state.ev)}</span>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════
+// Step 5 — Equity Value
+// ═══════════════════════════════════════════
+function updateEquity() {
+  state.cashM = parseFloat(document.getElementById('cashInput2').value) || 0;
+  state.debtM = parseFloat(document.getElementById('debtInput2').value) || 0;
+  state.equity = state.ev + state.cashM * 1e6 - state.debtM * 1e6;
+
+  document.getElementById('equityResultWrap').innerHTML = `
+    <div class="sum-block">
+      <div class="sum-row"><span>企業價值 EV</span><span><strong>${fmtLarge(state.ev)}</strong></span></div>
+      <div class="sum-row"><span style="color:var(--green-dark);">+ 現金 &amp; 短期投資</span>
+        <span style="color:var(--green-dark);font-weight:bold;">+ ${fmtLarge(state.cashM * 1e6)}</span></div>
+      <div class="sum-row"><span style="color:var(--red);">- 總負債</span>
+        <span style="color:var(--red);font-weight:bold;">- ${fmtLarge(state.debtM * 1e6)}</span></div>
+      <div class="sum-divider"></div>
+      <div class="sum-row sum-total">
+        <span>股權價值 E</span>
+        <span style="color:var(--blue);">${fmtLarge(state.equity)}</span>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════
+// Step 6 — Fair Price
+// ═══════════════════════════════════════════
+function updateFairPrice() {
+  state.sharesM = parseFloat(document.getElementById('sharesInput2').value) || 0;
+  if (!state.sharesM) {
+    document.getElementById('fairPriceWrap').innerHTML =
+      '<div class="error-msg show">請輸入流通股數</div>';
+    return;
+  }
+
+  state.fairPrice = state.equity / (state.sharesM * 1e6);
+  const price = state.price;
+
+  let html = '';
+
+  // Verdict
+  if (price > 0) {
+    const diff = (state.fairPrice - price) / price;
+    const isUnder = diff >= 0;
+    html += `
+      <div class="verdict-banner ${isUnder ? 'vb-under' : 'vb-over'}">
+        <div class="verdict-pct">${fmtPct(diff)}</div>
+        <div class="verdict-text">${isUnder ? '股價低於 DCF 估算內在價值' : '股價高於 DCF 估算內在價值'}</div>
+        <div class="verdict-sub">目前股價 ${fmtPrice(price)}　vs　合理股價 ${fmtPrice(state.fairPrice)}</div>
+      </div>`;
+
+    // Ruler
+    const maxVal = Math.max(state.fairPrice, price) * 1.4;
+    const ivPct = (state.fairPrice / maxVal) * 100;
+    const pPct  = (price / maxVal) * 100;
+    // 兩個 pin 太近時（差距 < 12%），目前股價標籤往下錯開
+    const tooClose = Math.abs(ivPct - pPct) < 12;
+    html += `
+      <div class="price-ruler">
+        <div class="pr-title">股價位置</div>
+        <div class="ruler-track">
+          <div class="z-under" style="flex:${ivPct};"></div>
+          <div class="z-over"  style="flex:${100 - ivPct};"></div>
+        </div>
+        <div class="ruler-pin" style="left:${ivPct}%;">
+          <div class="pin-line" style="background:var(--green-dark);"></div>
+          <div class="pin-lbl" style="color:var(--green-dark);">合理股價<br><span class="pin-price">${fmtPrice(state.fairPrice)}</span></div>
+        </div>
+        <div class="ruler-pin" style="left:${pPct}%;">
+          <div class="pin-line" style="background:#1C1C1E;width:3px;"></div>
+          <div class="pin-lbl ${tooClose ? 'offset-down' : ''}" style="color:#1C1C1E;">目前股價<br><span class="pin-price">${fmtPrice(price)}</span></div>
+        </div>
+      </div>`;
+  }
+
+  // Summary cards
+  html += `<div class="result-grid" style="grid-template-columns:1fr;">
+    <div class="result-card rc-green">
+      <div class="rc-lbl">DCF 合理股價</div>
+      <div class="rc-val green" style="font-size:40px;">${fmtPrice(state.fairPrice)}</div>
+      <div class="rc-sub">股權價值 ${fmtLarge(state.equity)} &divide; ${state.sharesM.toFixed(0)}M 股</div>
+    </div>
+  </div>
+  <div class="result-grid">
+    ${price > 0 ? `<div class="result-card rc-gray">
+      <div class="rc-lbl">目前股價</div>
+      <div class="rc-val gray">${fmtPrice(price)}</div>
+      <div class="rc-sub">市場報價</div>
+    </div>` : ''}
+    <div class="result-card rc-blue">
+      <div class="rc-lbl">股權價值</div>
+      <div class="rc-val blue" style="font-size:20px;">${fmtLarge(state.equity)}</div>
+      <div class="rc-sub">EV + 現金 − 負債</div>
+    </div>
+  </div>`;
+
+  document.getElementById('fairPriceWrap').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+// Navigation
+// ═══════════════════════════════════════════
+function goToStep(n) {
+  if (n >= 2 && !state.ticker) { alert('請先抓取股票數據！'); return; }
+
+  for (let i = 1; i <= TOTAL; i++) {
+    const card = document.getElementById('card' + i);
+    // 切換 class：completed / visible / (hidden)
+    card.className = 'step-card' + (i < n ? ' completed' : i === n ? ' visible' : '');
+    // 點擊完成卡片可返回
+    // 只讓 overlay 可點擊返回，避免冒泡干擾卡片內按鈕
+    card.onclick = null;
+    const overlay = document.getElementById('overlay' + i);
+    if (overlay) overlay.onclick = i < n ? (e) => { e.stopPropagation(); goToStep(i); } : null;
+
+    const dot  = document.getElementById('dot' + i);
+    const line = document.getElementById('line' + i);
+    dot.className = 'step-dot ' + (i < n ? 'done' : i === n ? 'active' : 'inactive');
+    if (line) line.className = 'step-line ' + (i < n ? 'done' : 'inactive');
+  }
+
+  // 更新各步驟的摘要文字（只更新 overlay，不動 card-body）
+  for (let i = 1; i < n; i++) renderCompleted(i);
+
+  // 填入目前步驟的動態內容
+  if (n === 2) {
+    document.getElementById('s2Years').textContent = state.years;
+    renderFCFTable();
+  }
+  if (n === 3) {
+    // 預設填入 WACC 作為折現率
+    if (state.wacc) {
+      state.r = state.wacc;
+      document.getElementById('rInput').value = state.wacc;
+      document.getElementById('rWaccHint').textContent = `← WACC ${state.wacc}%`;
+    }
+    document.getElementById('gtInput').value = state.gt;
+    updateTV();
+  }
+  if (n === 4) calcAndRenderEV();
+  if (n === 5) {
+    document.getElementById('cashInput2').value = Math.round(state.cashM) || '';
+    document.getElementById('debtInput2').value = Math.round(state.debtM) || '';
+    updateEquity();
+  }
+  if (n === 6) {
+    document.getElementById('sharesInput2').value = Math.round(state.sharesM) || '';
+    updateFairPrice();
+  }
+
+  currentStep = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleHint(id) {
+  const el = document.getElementById(id);
+  const toggle = el.previousElementSibling;
+  const isOpen = el.classList.toggle('open');
+  toggle.textContent = toggle.textContent.replace(/^[▶▼]/, isOpen ? '▼' : '▶');
+}
+
+function dotClick(n) {
+  if (n > currentStep) return;
+  if (n >= 2 && !state.ticker) return;
+  goToStep(n);
+}
+
+const stepTitles = ['', '股票資料', '預測現金流', '終值', '企業價值', '股權價值'];
+const stepSummaries = {
+  1: () => `${state.ticker} — ${state.name} · FCF ${fmtLarge(state.fcfM*1e6)} · ${state.years} 年`,
+  2: () => `g = ${state.g1}% × ${state.years} 年 → 第${state.years}年 FCF ${state.projFCFs.length ? fmtLarge(state.projFCFs.at(-1).fcf) : '—'}`,
+  3: () => `r=${state.r}%, gT=${state.gt}% → TV = ${fmtLarge(state.tv)}`,
+  4: () => `EV = ${fmtLarge(state.ev)}`,
+  5: () => `股權價值 E = ${fmtLarge(state.equity)}`,
+};
+
+function renderCompleted(step) {
+  // 只更新 overlay div，完全不動 card-body
+  const overlay = document.getElementById('overlay' + step);
+  if (!overlay) return;
+  const val = stepSummaries[step] ? stepSummaries[step]() : '';
+  overlay.innerHTML = `
+    <div class="completed-icon">✓</div>
+    <div style="flex:1;">
+      <div class="cs-title">${stepTitles[step]}</div>
+      <div class="cs-val">${val}</div>
+    </div>
+    <div class="completed-edit">修改</div>`;
+}
+</script>
+</body>
+</html>
