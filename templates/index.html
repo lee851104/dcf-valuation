@@ -335,8 +335,10 @@ body {
   .stat-grid { grid-template-columns: 1fr; }
 
   /* 參數輸入行：改直向 */
-  .input-row { flex-wrap: wrap; }
-  .input-lbl { min-width: unset; width: 100%; }
+  .input-row { flex-wrap: wrap; gap: 6px; }
+  .input-lbl { min-width: unset; width: 100%; margin-bottom: 2px; }
+  .param-input { width: 100% !important; text-align: left; }
+  .input-unit { align-self: center; }
 
   /* 結果卡片：改單欄 */
   .result-grid { grid-template-columns: 1fr; }
@@ -346,6 +348,16 @@ body {
 
   /* FCF bar 數值縮短 */
   .fcf-bar-val { width: 64px; }
+
+  /* 成長率快選按鈕：手機上縮小字、允許換行 */
+  .rate-group { flex-wrap: wrap; }
+  .rate-btn { flex: 1 1 calc(33% - 8px); min-width: 70px; padding: 8px 4px; font-size: 14px; }
+
+  /* 年數按鈕字縮小 */
+  .year-btn { font-size: 14px; padding: 10px 4px; }
+
+  /* step5/6 input 區塊不超出 */
+  .input-row .param-input { box-sizing: border-box; }
 }
 </style>
 </head>
@@ -411,15 +423,15 @@ body {
         </div>
         <div class="stat-box highlight">
           <div class="s-lbl">WACC（即折現率）</div>
-          <div class="s-val" style="display:flex;align-items:center;gap:6px;">
-            <input class="editable-val" type="number" id="waccInput" placeholder="手動輸入" step="0.01" style="flex:1;">
-            <span style="font-size:16px;font-weight:bold;color:var(--muted);">%</span>
-            <button id="waccBtn" onclick="fetchWACC()"
-              style="font-size:11px;padding:4px 8px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">
-              從 GuruFocus 抓取
-            </button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input class="editable-val" type="number" id="waccInput" placeholder="手動輸入" step="0.01" style="flex:1;min-width:0;">
+            <span style="font-size:16px;font-weight:bold;color:var(--muted);flex-shrink:0;">%</span>
           </div>
-          <div class="s-sub" id="waccSub">可手動輸入或點按鈕抓取</div>
+          <button id="waccBtn" onclick="fetchWACC()"
+            style="margin-top:8px;font-size:12px;padding:6px 10px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;width:100%;">
+            從 GuruFocus 抓取
+          </button>
+          <div class="s-sub" id="waccSub" style="margin-top:6px;">可手動輸入或點按鈕抓取</div>
         </div>
         <div class="stat-box">
           <div class="s-lbl">目前股價</div>
