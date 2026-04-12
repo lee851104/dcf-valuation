@@ -445,9 +445,18 @@ body.dark .warn-banner {
 
       <div class="section-lbl" style="margin-top:0;">預測年數</div>
       <div class="year-group">
-        <button class="year-btn" onclick="selectYears(this,3)">3 年<span class="yb-sub">成熟穩定</span></button>
-        <button class="year-btn selected" onclick="selectYears(this,5)">5 年<span class="yb-sub">一般預期</span></button>
-        <button class="year-btn" onclick="selectYears(this,7)">7 年<span class="yb-sub">高成長期</span></button>
+        <button class="year-btn" id="yearBtn3" onclick="selectYears(this,3)">3 年<span class="yb-sub">成熟穩定</span></button>
+        <button class="year-btn selected" id="yearBtn5" onclick="selectYears(this,5)">5 年<span class="yb-sub">一般預期</span></button>
+        <button class="year-btn" id="yearBtnCustom" onclick="selectYears(this, parseInt(document.getElementById('customYearInput').value)||10)">
+          <span id="customYearLabel">10</span> 年
+          <span class="yb-sub">自訂年數</span>
+          <input id="customYearInput" type="number" value="10" min="3" max="20" step="1"
+            style="display:block;width:52px;margin:4px auto 0;padding:2px 4px;font-size:13px;font-weight:bold;
+                   border:1px solid var(--border);border-radius:6px;text-align:center;
+                   background:var(--bg-card);color:var(--text);"
+            onclick="event.stopPropagation()"
+            oninput="onCustomYearInput(this)">
+        </button>
       </div>
 
       <div class="warn-banner" id="fcfWarn">⚠️ 無法自動取得 FCF，請手動輸入（單位：百萬）。</div>
@@ -843,6 +852,19 @@ function selectYears(btn, n) {
   document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   state.years = n;
+}
+
+function onCustomYearInput(input) {
+  let val = parseInt(input.value);
+  if (isNaN(val)) return;
+  val = Math.max(3, Math.min(20, val));
+  input.value = val;
+  document.getElementById('customYearLabel').textContent = val;
+  // 自動選中自訂按鈕並更新 state
+  const btn = document.getElementById('yearBtnCustom');
+  document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.years = val;
 }
 
 function step1Next() {
