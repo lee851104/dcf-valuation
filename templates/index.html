@@ -170,18 +170,51 @@ body.dark {
 }
 .error-msg.show { display: block; }
 
-/* ── year buttons ── */
-.year-group { display: flex; gap: 10px; }
-.year-btn {
-  flex: 1; padding: 12px 8px;
-  border: 2px solid var(--border); border-radius: 10px;
-  background: var(--bg-card); color: var(--text); font-size: 16px; font-weight: bold;
-  cursor: pointer; text-align: center; transition: all 0.15s;
+/* ── year slider ── */
+.year-slider-wrap {
+  padding: 8px 4px 4px;
 }
-.year-btn:hover { border-color: var(--blue); }
-.year-btn.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
-.year-btn .yb-sub { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; font-weight: normal; }
-.year-btn.selected .yb-sub { color: var(--blue); }
+.year-slider-top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.year-slider-label {
+  font-size: 13px; color: var(--label); font-weight: bold;
+}
+.year-display {
+  display: flex; align-items: center; gap: 8px;
+}
+.year-val {
+  font-size: 40px; font-weight: bold; color: var(--blue);
+  min-width: 52px; text-align: center; line-height: 1;
+}
+.year-unit { font-size: 15px; color: var(--muted); }
+.year-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+input[type=range].year-range {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 10px; border-radius: 6px;
+  background: var(--border); outline: none; cursor: pointer;
+  transition: background 0.2s; touch-action: none;
+}
+input[type=range].year-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--blue); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.5);
+  transition: transform 0.15s;
+}
+input[type=range].year-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type=range].year-range:active::-webkit-slider-thumb { transform: scale(1.25); }
+input[type=range].year-range::-moz-range-thumb {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: var(--blue); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,122,255,0.5);
+}
+.year-ticks {
+  display: flex; justify-content: space-between;
+  padding: 4px 2px 0; font-size: 11px; color: var(--muted);
+}
 
 /* ── company card ── */
 .company-card { margin-top: 20px; display: none; }
@@ -444,19 +477,21 @@ body.dark .warn-banner {
       <div class="company-name" id="companyName"></div>
 
       <div class="section-lbl" style="margin-top:0;">預測年數</div>
-      <div class="year-group">
-        <button class="year-btn" id="yearBtn3" onclick="selectYears(this,3)">3 年<span class="yb-sub">成熟穩定</span></button>
-        <button class="year-btn selected" id="yearBtn5" onclick="selectYears(this,5)">5 年<span class="yb-sub">一般預期</span></button>
-        <button class="year-btn" id="yearBtnCustom" onclick="selectYears(this, parseInt(document.getElementById('customYearInput').value)||10)">
-          <span id="customYearLabel">10</span> 年
-          <span class="yb-sub">自訂年數</span>
-          <input id="customYearInput" type="number" value="10" min="3" max="20" step="1"
-            style="display:block;width:52px;margin:4px auto 0;padding:2px 4px;font-size:13px;font-weight:bold;
-                   border:1px solid var(--border);border-radius:6px;text-align:center;
-                   background:var(--bg-card);color:var(--text);"
-            onclick="event.stopPropagation()"
-            oninput="onCustomYearInput(this)">
-        </button>
+      <div class="year-slider-wrap">
+        <div class="year-slider-top">
+          <span class="year-slider-label">高成長期預測</span>
+          <div class="year-display">
+            <span class="year-val" id="yearValDisplay">5</span>
+            <span class="year-unit">年</span>
+          </div>
+        </div>
+        <input type="range" class="year-range" id="yearRange"
+          min="3" max="20" step="1" value="5"
+          oninput="onYearRange(this.value)">
+        <div class="year-ticks">
+          <span>3</span><span>5</span><span>7</span><span>10</span><span>15</span><span>20</span>
+        </div>
+        <div class="year-hint" id="yearHint">一般預期</div>
       </div>
 
       <div class="warn-banner" id="fcfWarn">⚠️ 無法自動取得 FCF，請手動輸入（單位：百萬）。</div>
@@ -724,18 +759,24 @@ let state = {
 // ═══════════════════════════════════════════
 // Format helpers
 // ═══════════════════════════════════════════
+function commas(n) {
+  // 加千分位逗號
+  const parts = n.toString().split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+}
 function fmtLarge(v) {
   if (v == null || isNaN(v)) return '—';
   const abs = Math.abs(v), s = v < 0 ? '-' : '';
-  if (abs >= 1e12) return s + '$' + (abs / 1e12).toFixed(2) + 'T';
-  if (abs >= 1e9)  return s + '$' + (abs / 1e9).toFixed(2) + 'B';
-  if (abs >= 1e6)  return s + '$' + (abs / 1e6).toFixed(2) + 'M';
-  if (abs >= 1e3)  return s + '$' + (abs / 1e3).toFixed(1) + 'K';
-  return s + '$' + abs.toFixed(0);
+  if (abs >= 1e12) return s + '$' + commas((abs / 1e12).toFixed(2)) + 'T';
+  if (abs >= 1e9)  return s + '$' + commas((abs / 1e9).toFixed(2)) + 'B';
+  if (abs >= 1e6)  return s + '$' + commas((abs / 1e6).toFixed(2)) + 'M';
+  if (abs >= 1e3)  return s + '$' + commas((abs / 1e3).toFixed(1)) + 'K';
+  return s + '$' + commas(abs.toFixed(0));
 }
 function fmtPrice(v) {
   if (v == null || isNaN(v)) return '—';
-  return '$' + v.toFixed(2);
+  return '$' + commas(v.toFixed(2));
 }
 function fmtPct(v) {
   if (v == null || isNaN(v)) return '—';
@@ -848,24 +889,20 @@ async function fetchWACC() {
   }
 }
 
-function selectYears(btn, n) {
-  document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  state.years = n;
-}
-
-function onCustomYearInput(input) {
-  let val = parseInt(input.value);
-  if (isNaN(val)) return;
-  val = Math.max(3, Math.min(20, val));
-  input.value = val;
-  document.getElementById('customYearLabel').textContent = val;
-  // 自動選中自訂按鈕並更新 state
-  const btn = document.getElementById('yearBtnCustom');
-  document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
+function onYearRange(val) {
+  val = parseInt(val);
   state.years = val;
+  document.getElementById('yearValDisplay').textContent = val;
+  // 更新拉桿填色
+  const pct = (val - 3) / (20 - 3) * 100;
+  document.getElementById('yearRange').style.background =
+    `linear-gradient(to right, var(--blue) ${pct}%, var(--border) ${pct}%)`;
+  // 更新提示文字
+  const hint = val <= 4 ? '成熟穩定企業' : val <= 6 ? '一般預期' : val <= 9 ? '具成長潛力' : val <= 14 ? '高成長期' : '積極預測';
+  document.getElementById('yearHint').textContent = hint;
 }
+// 初始化拉桿填色
+document.addEventListener('DOMContentLoaded', () => onYearRange(5));
 
 function step1Next() {
   const errEl = document.getElementById('step1Error');
