@@ -8,19 +8,49 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  background: #F5F5F7; min-height: 100vh;
-  color: #1C1C1E; font-size: 15px;
+  background: var(--bg); min-height: 100vh;
+  color: var(--text); font-size: 15px;
+  transition: background 0.3s, color 0.3s;
 }
 :root {
   --blue: #007AFF; --blue-light: #E3F0FF;
   --green: #34C759; --green-dark: #248A3D; --green-light: #E8F5E9;
   --red: #FF3B30; --red-light: #FFE8E8;
   --border: #D1D1D6; --muted: #8E8E93; --label: #6C6C70;
+
+  --bg: #F5F5F7;
+  --bg-card: #ffffff;
+  --bg-stat: #F5F5F7;
+  --bg-formula: #F0F4FF;
+  --bg-sum: #F5F5F7;
+  --bg-bar-track: #F0F0F3;
+  --bg-ruler: #F5F5F7;
+  --bg-topbar: rgba(255,255,255,0.88);
+  --text: #1C1C1E;
+  --shadow: rgba(0,0,0,0.08);
+}
+
+body.dark {
+  --blue: #409CFF; --blue-light: #1A2E45;
+  --green: #32D74B; --green-dark: #30D158; --green-light: #0D2B18;
+  --red: #FF453A; --red-light: #2B1012;
+  --border: #3A3A3C; --muted: #8E8E93; --label: #98989E;
+
+  --bg: #1C1C1E;
+  --bg-card: #2C2C2E;
+  --bg-stat: #3A3A3C;
+  --bg-formula: #1A2340;
+  --bg-sum: #3A3A3C;
+  --bg-bar-track: #3A3A3C;
+  --bg-ruler: #3A3A3C;
+  --bg-topbar: rgba(28,28,30,0.88);
+  --text: #F5F5F7;
+  --shadow: rgba(0,0,0,0.3);
 }
 
 /* ── topbar ── */
 .topbar {
-  background: rgba(255,255,255,0.88); backdrop-filter: blur(12px);
+  background: var(--bg-topbar); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   padding: 12px 24px; display: flex; align-items: center; gap: 10px;
   position: sticky; top: 0; z-index: 100;
@@ -47,8 +77,8 @@ body {
 
 /* ── cards ── */
 .step-card {
-  background: #fff; border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  background: var(--bg-card); border-radius: 16px;
+  box-shadow: 0 2px 12px var(--shadow);
   padding: 28px; margin-bottom: 16px;
   display: none; animation: fadeIn 0.25s ease;
 }
@@ -85,7 +115,7 @@ body {
   background: var(--blue); color: #fff;
   font-size: 13px; font-weight: bold; margin-bottom: 10px;
 }
-.step-title { font-size: 22px; font-weight: bold; color: #1C1C1E; margin-bottom: 6px; line-height: 1.3; }
+.step-title { font-size: 22px; font-weight: bold; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
 .step-desc  { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 22px; }
 
 .section-lbl {
@@ -101,9 +131,10 @@ body {
   flex: 1; border: 2px solid var(--border); border-radius: 10px;
   padding: 14px 18px; font-size: 24px; font-weight: bold;
   outline: none; text-transform: uppercase; transition: border-color 0.2s;
+  background: var(--bg-card); color: var(--text);
 }
 .big-input:focus { border-color: var(--blue); }
-.big-input::placeholder { color: #C7C7CC; }
+.big-input::placeholder { color: var(--muted); }
 
 .btn-primary {
   padding: 14px 22px; background: var(--blue); color: #fff;
@@ -144,7 +175,7 @@ body {
 .year-btn {
   flex: 1; padding: 12px 8px;
   border: 2px solid var(--border); border-radius: 10px;
-  background: #fff; font-size: 16px; font-weight: bold;
+  background: var(--bg-card); color: var(--text); font-size: 16px; font-weight: bold;
   cursor: pointer; text-align: center; transition: all 0.15s;
 }
 .year-btn:hover { border-color: var(--blue); }
@@ -159,7 +190,7 @@ body {
 
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .stat-box {
-  background: #F5F5F7; border-radius: 10px;
+  background: var(--bg-stat); border-radius: 10px;
   padding: 12px 14px; border: 1px solid var(--border);
 }
 .stat-box.highlight { background: var(--blue-light); border-color: #99C8FF; }
@@ -179,14 +210,17 @@ body {
   font-size: 13px; color: #7B5800;
   margin-top: 10px; display: none;
 }
+body.dark .warn-banner {
+  background: #2B2200; border-color: #6B5000; color: #FFD060;
+}
 .warn-banner.show { display: block; }
 
 /* ── formula box ── */
 .formula-box {
-  background: #F0F4FF; border: 1px solid #C0D4FF;
+  background: var(--bg-formula); border: 1px solid var(--border);
   border-radius: 10px; padding: 14px 18px;
   margin-bottom: 20px; font-size: 14px;
-  color: #1C1C1E; line-height: 1.9;
+  color: var(--text); line-height: 1.9;
 }
 .formula-title {
   font-size: 11px; font-weight: bold; color: var(--blue);
@@ -198,7 +232,7 @@ body {
 .rate-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .rate-btn {
   padding: 10px 16px; border: 2px solid var(--border);
-  border-radius: 10px; background: #fff; cursor: pointer;
+  border-radius: 10px; background: var(--bg-card); color: var(--text); cursor: pointer;
   text-align: center; transition: all 0.15s;
   font-size: 16px; font-weight: bold;
 }
@@ -214,6 +248,7 @@ body {
   border: 2px solid var(--border); border-radius: 8px;
   padding: 8px 12px; font-size: 16px; font-weight: bold;
   width: 110px; text-align: center; outline: none;
+  background: var(--bg-card); color: var(--text);
 }
 .param-input:focus { border-color: var(--blue); }
 .input-unit { font-size: 14px; color: var(--label); }
@@ -223,18 +258,18 @@ body {
 .fcf-table th {
   padding: 8px 12px; text-align: right;
   font-size: 11px; font-weight: bold; color: var(--label);
-  text-transform: uppercase; background: #F5F5F7;
+  text-transform: uppercase; background: var(--bg-stat);
   border-bottom: 1px solid var(--border);
 }
 .fcf-table th:first-child { text-align: left; }
-.fcf-table td { padding: 8px 12px; text-align: right; border-bottom: 1px solid #F5F5F7; }
+.fcf-table td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border); }
 .fcf-table td:first-child { text-align: left; color: var(--muted); font-weight: bold; }
-.fcf-table tr:hover td { background: #FAFAFA; }
+.fcf-table tr:hover td { background: var(--bg-stat); }
 .fcf-table tr.year0 td { color: var(--muted); }
 
 /* ── sum block ── */
 .sum-block {
-  background: #F5F5F7; border-radius: 10px;
+  background: var(--bg-sum); border-radius: 10px;
   padding: 14px 16px; margin-top: 14px;
   font-size: 14px; line-height: 2.2;
 }
@@ -247,12 +282,12 @@ body {
 .result-card { border-radius: 12px; padding: 16px; text-align: center; }
 .rc-green { background: var(--green-light); border: 1px solid #C8E6C9; }
 .rc-blue  { background: var(--blue-light);  border: 1px solid #99C8FF; }
-.rc-gray  { background: #F5F5F7; border: 1px solid var(--border); }
+.rc-gray  { background: var(--bg-stat); border: 1px solid var(--border); }
 .rc-lbl { font-size: 11px; font-weight: bold; color: var(--label); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
 .rc-val { font-size: 24px; font-weight: bold; }
 .rc-val.green { color: var(--green-dark); }
 .rc-val.blue  { color: var(--blue); }
-.rc-val.gray  { color: #1C1C1E; }
+.rc-val.gray  { color: var(--text); }
 .rc-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
 /* ── verdict ── */
@@ -272,7 +307,7 @@ body {
 
 /* ── price ruler ── */
 .price-ruler {
-  background: #F5F5F7; border-radius: 12px;
+  background: var(--bg-ruler); border-radius: 12px;
   padding: 18px 20px 70px; margin-bottom: 16px; position: relative;
 }
 .pr-title { font-size: 12px; font-weight: bold; color: var(--label); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 14px; }
@@ -308,7 +343,7 @@ body {
   margin-bottom: 8px;
 }
 .fcf-bar-lbl { font-size: 12px; color: var(--muted); font-weight: bold; width: 72px; flex-shrink: 0; }
-.fcf-bar-track { flex: 1; height: 22px; background: #F0F0F3; border-radius: 6px; overflow: hidden; }
+.fcf-bar-track { flex: 1; height: 22px; background: var(--bg-bar-track); border-radius: 6px; overflow: hidden; }
 .fcf-bar-fill { height: 100%; border-radius: 6px; transition: width 0.3s; }
 .fcf-bar-val { font-size: 12px; font-weight: bold; width: 80px; flex-shrink: 0; text-align: right; }
 
@@ -366,6 +401,11 @@ body {
 <div class="topbar">
   <span class="logo-text">DCF</span>
   <span class="logo-sub">Valuation</span>
+  <button id="darkToggle" onclick="toggleDark()"
+    style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:8px;
+           padding:6px 12px;cursor:pointer;font-size:14px;color:var(--text);transition:all 0.2s;">
+    🌙
+  </button>
 </div>
 
 <div class="container">
@@ -441,7 +481,7 @@ body {
         <div class="stat-box">
           <div class="s-lbl">帳上現金 + 短期投資</div>
           <div class="s-val">
-            <input class="editable-val" type="number" id="cashInput" placeholder="0" style="color:#1C1C1E;">
+            <input class="editable-val" type="number" id="cashInput" placeholder="0" style="color:var(--text);">
           </div>
           <div class="s-sub">百萬</div>
         </div>
@@ -455,7 +495,7 @@ body {
         <div class="stat-box">
           <div class="s-lbl">流通在外股數</div>
           <div class="s-val">
-            <input class="editable-val" type="number" id="sharesInput" placeholder="手動輸入" style="color:#1C1C1E;">
+            <input class="editable-val" type="number" id="sharesInput" placeholder="手動輸入" style="color:var(--text);">
           </div>
           <div class="s-sub">百萬股</div>
         </div>
@@ -636,6 +676,24 @@ body {
 </div><!-- /container -->
 
 <script>
+// ═══════════════════════════════════════════
+// Dark mode
+// ═══════════════════════════════════════════
+function toggleDark() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  document.getElementById('darkToggle').textContent = isDark ? '☀️' : '🌙';
+}
+// 啟動時套用儲存的主題
+(function() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === 'dark' || (!saved && prefersDark)) {
+    document.body.classList.add('dark');
+    document.getElementById('darkToggle').textContent = '☀️';
+  }
+})();
+
 // ═══════════════════════════════════════════
 // State
 // ═══════════════════════════════════════════
@@ -1044,8 +1102,8 @@ function updateFairPrice() {
           <div class="pin-lbl" style="color:var(--green-dark);">合理股價<br><span class="pin-price">${fmtPrice(state.fairPrice)}</span></div>
         </div>
         <div class="ruler-pin" style="left:${pPct}%;">
-          <div class="pin-line" style="background:#1C1C1E;width:3px;"></div>
-          <div class="pin-lbl ${tooClose ? 'offset-down' : ''}" style="color:#1C1C1E;">目前股價<br><span class="pin-price">${fmtPrice(price)}</span></div>
+          <div class="pin-line" style="background:var(--text);width:3px;"></div>
+          <div class="pin-lbl ${tooClose ? 'offset-down' : ''}" style="color:var(--text);">目前股價<br><span class="pin-price">${fmtPrice(price)}</span></div>
         </div>
       </div>`;
   }
