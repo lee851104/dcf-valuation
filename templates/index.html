@@ -330,39 +330,76 @@ body.dark .warn-banner {
 
 /* ── verdict ── */
 .verdict-banner {
-  border-radius: 12px; padding: 22px 24px;
-  text-align: center; margin-bottom: 20px;
+  border-radius: 12px; padding: 20px 24px;
+  text-align: center; margin-bottom: 12px;
 }
 .vb-under { background: var(--green-light); border: 2px solid var(--green); }
 .vb-over  { background: var(--red-light);   border: 2px solid var(--red); }
 .verdict-pct  { font-size: 52px; font-weight: bold; line-height: 1; }
 .vb-under .verdict-pct  { color: var(--green-dark); }
 .vb-over  .verdict-pct  { color: var(--red); }
-.verdict-text { font-size: 17px; font-weight: bold; margin-top: 8px; }
+.verdict-text { font-size: 17px; font-weight: bold; margin-top: 6px; }
 .vb-under .verdict-text { color: var(--green-dark); }
 .vb-over  .verdict-text { color: var(--red); }
-.verdict-sub  { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.verdict-sub  { font-size: 13px; color: var(--muted); margin-top: 4px; }
 
-/* ── price ruler ── */
-.price-ruler {
-  background: var(--bg-ruler); border-radius: 12px;
-  padding: 18px 20px 70px; margin-bottom: 16px; position: relative;
+/* 三參數列 */
+.param-pills {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  justify-content: center; margin-bottom: 16px;
 }
-.pr-title { font-size: 12px; font-weight: bold; color: var(--label); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 14px; }
-.ruler-track { display: flex; height: 28px; border-radius: 8px; overflow: hidden; }
-.z-under { background: linear-gradient(90deg, #A5D6A7, #C8F7C5); }
-.z-over  { background: linear-gradient(90deg, #FFE0E0, #FFCDD2); }
-.ruler-pin {
-  position: absolute; top: 34px;
-  transform: translateX(-50%);
-  display: flex; flex-direction: column; align-items: center;
-  pointer-events: none;
+.param-pill {
+  font-size: 12px; padding: 4px 12px; border-radius: 20px;
+  background: var(--bg-stat); border: 1px solid var(--border);
+  color: var(--label); font-weight: bold; white-space: nowrap;
 }
-.pin-line  { width: 2px; height: 28px; }
-.pin-lbl   { margin-top: 5px; font-size: 11px; font-weight: bold; line-height: 1.4; text-align: center; white-space: nowrap; }
-.pin-price { font-size: 13px; font-weight: bold; }
-/* 兩個 pin 靠近時，目前股價往下錯開 */
-.pin-lbl.offset-down { margin-top: 32px; }
+.param-pill span { color: var(--blue); }
+
+/* ── 氣泡比較卡 ── */
+.price-compare {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 12px;
+  margin-bottom: 16px;
+}
+.pc-bubble {
+  border-radius: 14px; padding: 16px 12px;
+  text-align: center;
+}
+.pc-bubble.fair  { background: var(--green-light); border: 2px solid var(--green); }
+.pc-bubble.curr  { background: var(--bg-stat);     border: 2px solid var(--border); }
+.pc-lbl  { font-size: 11px; font-weight: bold; color: var(--label); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+.pc-price { font-size: 28px; font-weight: bold; line-height: 1; }
+.pc-bubble.fair  .pc-price { color: var(--green-dark); }
+.pc-bubble.curr  .pc-price { color: var(--text); }
+.pc-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.pc-vs  { font-size: 18px; font-weight: bold; color: var(--muted); text-align: center; }
+
+/* 比例尺 */
+.price-bar-wrap {
+  background: var(--bg-stat); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.pb-title { font-size: 11px; font-weight: bold; color: var(--label); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
+.pb-track {
+  position: relative; height: 8px;
+  background: var(--border); border-radius: 4px; margin-bottom: 28px;
+}
+.pb-fill-fair { position: absolute; left: 0; top: 0; height: 100%; border-radius: 4px; background: var(--green); }
+.pb-fill-curr { position: absolute; left: 0; top: 0; height: 100%; border-radius: 4px;
+  background: repeating-linear-gradient(90deg,var(--muted) 0,var(--muted) 4px,transparent 4px,transparent 8px); }
+.pb-dot {
+  position: absolute; top: 50%; transform: translate(-50%,-50%);
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 3px solid var(--bg-card);
+}
+.pb-dot.fair { background: var(--green); }
+.pb-dot.curr { background: var(--muted); }
+.pb-tag {
+  position: absolute; top: 14px; transform: translateX(-50%);
+  font-size: 11px; font-weight: bold; white-space: nowrap; text-align: center;
+}
+.pb-tag.fair { color: var(--green-dark); }
+.pb-tag.curr { color: var(--muted); }
 
 /* ── collapsible hint ── */
 .hint-toggle {
@@ -418,6 +455,11 @@ body.dark .warn-banner {
 
   /* 判斷大字縮小 */
   .verdict-pct { font-size: 38px; }
+
+  /* 氣泡卡：手機改上下排 */
+  .price-compare { grid-template-columns: 1fr; }
+  .pc-vs { display: none; }
+  .pc-price { font-size: 24px; }
 
   /* FCF bar 數值縮短 */
   .fcf-bar-val { width: 64px; }
@@ -707,7 +749,7 @@ body.dark .warn-banner {
     <div class="step-overlay" id="overlay6"></div>
     <div class="card-body">
     <div class="step-num">6</div>
-    <div class="step-title">合理股價</div>
+    <div class="step-title">合理股價 <span id="s6Ticker" style="color:var(--blue);"></span></div>
     <div class="step-desc">將股東權益除以流通在外股數，得出每股 DCF 內在價值。</div>
 
     <div class="formula-box">
@@ -1150,61 +1192,79 @@ function updateFairPrice() {
 
   let html = '';
 
-  // Verdict
+  // 三參數 pills（一定顯示）
+  html += `
+    <div class="param-pills">
+      <div class="param-pill">折現率 <span>${state.r}%</span></div>
+      <div class="param-pill">成長率 <span>${state.g1}%</span></div>
+      <div class="param-pill">預測期 <span>${state.years} 年</span></div>
+    </div>`;
+
   if (price > 0) {
     const diff = (state.fairPrice - price) / price;
     const isUnder = diff >= 0;
+
+    // Verdict banner
     html += `
       <div class="verdict-banner ${isUnder ? 'vb-under' : 'vb-over'}">
         <div class="verdict-pct">${fmtPct(diff)}</div>
         <div class="verdict-text">${isUnder ? '股價低於 DCF 估算內在價值' : '股價高於 DCF 估算內在價值'}</div>
-        <div class="verdict-sub">目前股價 ${fmtPrice(price)}　vs　合理股價 ${fmtPrice(state.fairPrice)}</div>
+        <div class="verdict-sub">${state.ticker} · 以上述三項假設計算</div>
       </div>`;
 
-    // Ruler
-    const maxVal = Math.max(state.fairPrice, price) * 1.4;
-    const ivPct = (state.fairPrice / maxVal) * 100;
-    const pPct  = (price / maxVal) * 100;
-    // 兩個 pin 太近時（差距 < 12%），目前股價標籤往下錯開
-    const tooClose = Math.abs(ivPct - pPct) < 12;
+    // 氣泡比較卡
     html += `
-      <div class="price-ruler">
-        <div class="pr-title">股價位置</div>
-        <div class="ruler-track">
-          <div class="z-under" style="flex:${ivPct};"></div>
-          <div class="z-over"  style="flex:${100 - ivPct};"></div>
+      <div class="price-compare">
+        <div class="pc-bubble fair">
+          <div class="pc-lbl">DCF 合理股價</div>
+          <div class="pc-price">${fmtPrice(state.fairPrice)}</div>
+          <div class="pc-sub">內在價值估算</div>
         </div>
-        <div class="ruler-pin" style="left:${ivPct}%;">
-          <div class="pin-line" style="background:var(--green-dark);"></div>
-          <div class="pin-lbl" style="color:var(--green-dark);">合理股價<br><span class="pin-price">${fmtPrice(state.fairPrice)}</span></div>
+        <div class="pc-vs">vs</div>
+        <div class="pc-bubble curr">
+          <div class="pc-lbl">目前市場股價</div>
+          <div class="pc-price">${fmtPrice(price)}</div>
+          <div class="pc-sub">市場報價</div>
         </div>
-        <div class="ruler-pin" style="left:${pPct}%;">
-          <div class="pin-line" style="background:var(--text);width:3px;"></div>
-          <div class="pin-lbl ${tooClose ? 'offset-down' : ''}" style="color:var(--text);">目前股價<br><span class="pin-price">${fmtPrice(price)}</span></div>
+      </div>`;
+
+    // 比例尺
+    const maxVal = Math.max(state.fairPrice, price) * 1.25;
+    const fairPct = Math.min((state.fairPrice / maxVal) * 100, 100);
+    const currPct = Math.min((price / maxVal) * 100, 100);
+    const leftFirst  = fairPct <= currPct; // 合理股價在左
+    html += `
+      <div class="price-bar-wrap">
+        <div class="pb-title">股價位置對比</div>
+        <div class="pb-track">
+          <div class="pb-fill-fair" style="width:${fairPct}%"></div>
+          <div class="pb-dot fair" style="left:${fairPct}%"></div>
+          <div class="pb-tag fair" style="left:${fairPct}%">合理 ${fmtPrice(state.fairPrice)}</div>
+          <div class="pb-dot curr" style="left:${currPct}%"></div>
+          <div class="pb-tag curr" style="left:${currPct}%; top:${leftFirst ? '14px' : '28px'}">市價 ${fmtPrice(price)}</div>
+        </div>
+      </div>`;
+  } else {
+    // 沒有市價，只顯示合理股價大字
+    html += `
+      <div class="price-compare" style="grid-template-columns:1fr;">
+        <div class="pc-bubble fair">
+          <div class="pc-lbl">DCF 合理股價</div>
+          <div class="pc-price" style="font-size:36px;">${fmtPrice(state.fairPrice)}</div>
+          <div class="pc-sub">股權價值 ${fmtLarge(state.equity)} ÷ ${state.sharesM.toFixed(0)}M 股</div>
         </div>
       </div>`;
   }
 
-  // Summary cards
-  html += `<div class="result-grid" style="grid-template-columns:1fr;">
-    <div class="result-card rc-green">
-      <div class="rc-lbl">DCF 合理股價</div>
-      <div class="rc-val green" style="font-size:40px;">${fmtPrice(state.fairPrice)}</div>
-      <div class="rc-sub">股權價值 ${fmtLarge(state.equity)} &divide; ${state.sharesM.toFixed(0)}M 股</div>
-    </div>
-  </div>
-  <div class="result-grid">
-    ${price > 0 ? `<div class="result-card rc-gray">
-      <div class="rc-lbl">目前股價</div>
-      <div class="rc-val gray">${fmtPrice(price)}</div>
-      <div class="rc-sub">市場報價</div>
-    </div>` : ''}
-    <div class="result-card rc-blue">
-      <div class="rc-lbl">股權價值</div>
-      <div class="rc-val blue" style="font-size:20px;">${fmtLarge(state.equity)}</div>
-      <div class="rc-sub">EV + 現金 − 負債</div>
-    </div>
-  </div>`;
+  // 股權價值小卡
+  html += `
+    <div class="result-grid" style="grid-template-columns:1fr;">
+      <div class="result-card rc-blue">
+        <div class="rc-lbl">股權價值</div>
+        <div class="rc-val blue" style="font-size:20px;">${fmtLarge(state.equity)}</div>
+        <div class="rc-sub">EV + 現金 − 負債　／　${state.sharesM.toFixed(0)}M 股</div>
+      </div>
+    </div>`;
 
   document.getElementById('fairPriceWrap').innerHTML = html;
 }
@@ -1257,6 +1317,7 @@ function goToStep(n) {
   }
   if (n === 6) {
     document.getElementById('sharesInput2').value = Math.round(state.sharesM) || '';
+    document.getElementById('s6Ticker').textContent = state.ticker ? `— ${state.ticker}` : '';
     updateFairPrice();
   }
 
