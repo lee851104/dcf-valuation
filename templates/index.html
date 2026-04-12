@@ -212,8 +212,13 @@ input[type=range].year-range::-moz-range-thumb {
   box-shadow: 0 2px 8px rgba(0,122,255,0.5);
 }
 .year-ticks {
-  display: flex; justify-content: space-between;
-  padding: 4px 2px 0; font-size: 11px; color: var(--muted);
+  position: relative; height: 18px;
+  padding: 4px 0 0; font-size: 11px; color: var(--muted);
+  /* 補正 thumb 半徑 16px，讓刻度兩端對齊 thumb 中心 */
+  margin-left: 16px; margin-right: 16px;
+}
+.year-ticks span {
+  position: absolute; transform: translateX(-50%);
 }
 
 /* ── company card ── */
@@ -489,9 +494,13 @@ body.dark .warn-banner {
           min="3" max="20" step="1" value="5"
           oninput="onYearRange(this.value)">
         <div class="year-ticks">
-          <span>3</span>
-          <span style="color:var(--blue);font-weight:bold;">5 ★</span>
-          <span>7</span><span>10</span><span>15</span><span>20</span>
+          <!-- 位置公式：(val - 3) / (20 - 3) * 100% -->
+          <span style="left:0%">3</span>
+          <span style="left:11.8%;color:var(--blue);font-weight:bold;">5 ★</span>
+          <span style="left:23.5%">7</span>
+          <span style="left:41.2%">10</span>
+          <span style="left:70.6%">15</span>
+          <span style="left:100%">20</span>
         </div>
         <div class="year-hint" id="yearHint">一般預期</div>
       </div>
