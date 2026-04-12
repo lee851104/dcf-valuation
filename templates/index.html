@@ -489,7 +489,9 @@ body.dark .warn-banner {
           min="3" max="20" step="1" value="5"
           oninput="onYearRange(this.value)">
         <div class="year-ticks">
-          <span>3</span><span>5</span><span>7</span><span>10</span><span>15</span><span>20</span>
+          <span>3</span>
+          <span style="color:var(--blue);font-weight:bold;">5 ★</span>
+          <span>7</span><span>10</span><span>15</span><span>20</span>
         </div>
         <div class="year-hint" id="yearHint">一般預期</div>
       </div>
@@ -898,8 +900,15 @@ function onYearRange(val) {
   document.getElementById('yearRange').style.background =
     `linear-gradient(to right, var(--blue) ${pct}%, var(--border) ${pct}%)`;
   // 更新提示文字
-  const hint = val <= 4 ? '成熟穩定企業' : val <= 6 ? '一般預期' : val <= 9 ? '具成長潛力' : val <= 14 ? '高成長期' : '積極預測';
-  document.getElementById('yearHint').textContent = hint;
+  const hintEl = document.getElementById('yearHint');
+  if (val === 5) {
+    hintEl.innerHTML = '⭐ 推薦預設值（多數分析師採用 5 年）';
+    hintEl.style.color = 'var(--blue)';
+  } else {
+    const hint = val <= 4 ? '成熟穩定企業' : val <= 6 ? '一般預期' : val <= 9 ? '具成長潛力' : val <= 14 ? '高成長期' : '積極預測，需謹慎';
+    hintEl.textContent = hint;
+    hintEl.style.color = 'var(--muted)';
+  }
 }
 // 初始化拉桿填色
 document.addEventListener('DOMContentLoaded', () => onYearRange(5));
