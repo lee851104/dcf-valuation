@@ -4,25 +4,13 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import re
+from curl_cffi import requests as cffi_requests
 
 app = Flask(__name__)
 
-# yfinance 用的 session，帶 browser User-Agent 避免被識別為爬蟲
-# 注意：不對 429 重試，重試只會讓 rate-limit 更嚴重
+# 用 curl_cffi 建立 session 給 yfinance，模擬瀏覽器 TLS 繞過雲端 IP 封鎖
 def _make_session():
-    s = requests.Session()
-    s.headers.update({
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/122.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-    })
-    # 只對網路錯誤重試，不對 429 重試
-    retry = Retry(total=2, backoff_factor=0.5, status_forcelist=[500, 502, 503])
-    s.mount("https://", HTTPAdapter(max_retries=retry))
+    s = cffi_requests.Session(impersonate="chrome124")
     return s
 
 
@@ -93,7 +81,8 @@ def api_fetch():
     ticker_symbol = raw_ticker.replace(".", "-")
 
     try:
-        t = yf.Ticker(ticker_symbol)
+        session = _make_session()
+        t = yf.Ticker(ticker_symbol, session=session)
         info = t.info
     except Exception as e:
         return jsonify({"error": f"無法取得數據：{e}"}), 400
