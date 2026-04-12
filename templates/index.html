@@ -320,6 +320,33 @@ body {
   vertical-align: middle; margin-right: 6px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── mobile ── */
+@media (max-width: 480px) {
+  .container { padding: 20px 14px 60px; }
+  .step-card { padding: 20px 16px; }
+  .step-title { font-size: 19px; }
+
+  /* 股票輸入框：換行排列 */
+  .ticker-wrap { flex-direction: column; }
+  .btn-primary { width: 100%; }
+
+  /* 統計格：改單欄 */
+  .stat-grid { grid-template-columns: 1fr; }
+
+  /* 參數輸入行：改直向 */
+  .input-row { flex-wrap: wrap; }
+  .input-lbl { min-width: unset; width: 100%; }
+
+  /* 結果卡片：改單欄 */
+  .result-grid { grid-template-columns: 1fr; }
+
+  /* 判斷大字縮小 */
+  .verdict-pct { font-size: 38px; }
+
+  /* FCF bar 數值縮短 */
+  .fcf-bar-val { width: 64px; }
+}
 </style>
 </head>
 <body>
