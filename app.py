@@ -9,34 +9,43 @@ from curl_cffi import requests as cffi_requests
 
 app = Flask(__name__)
 
-# 用 curl_cffi 建立 session 給 yfinance，模擬瀏覽器 TLS 繞過雲端 IP 封鎖
+# ── 快取：同一 ticker 30 分鐘內不重複打 Yahoo ──────────────────────────────
+_cache: dict = {}
+_CACHE_TTL = 1800  # seconds
+
+def _cache_get(key):
+    entry = _cache.get(key)
+    if entry and time.time() - entry["ts"] < _CACHE_TTL:
+        return entry["data"]
+    return None
+
+def _cache_set(key, data):
+    _cache[key] = {"ts": time.time(), "data": data}
+
+# ── session helpers ────────────────────────────────────────────────────────
 def _make_session(profile="chrome124"):
-    s = cffi_requests.Session(impersonate=profile)
-    return s
+    return cffi_requests.Session(impersonate=profile)
 
+def _fetch_ticker_with_retry(ticker_symbol):
+    """先試原生 yfinance（無 session），再輪換 curl_cffi 指紋，失敗退避重試。"""
+    def _attempts():
+        yield lambda: yf.Ticker(ticker_symbol)
+        for profile in ("chrome124", "chrome110", "safari17_0"):
+            yield lambda p=profile: yf.Ticker(ticker_symbol, session=_make_session(p))
 
-def _fetch_ticker_with_retry(ticker_symbol, max_attempts=3):
-    """嘗試多種 session 組合，每次失敗後稍等再試。"""
-    profiles = ["chrome124", "chrome110", "safari17_0"]
     last_exc = None
-    for attempt in range(max_attempts):
-        profile = profiles[attempt % len(profiles)]
+    for delay, make_ticker in enumerate(_attempts()):
+        if delay:
+            time.sleep(delay)  # 0, 1, 2, 3 s
         try:
-            session = _make_session(profile)
-            t = yf.Ticker(ticker_symbol, session=session)
+            t = make_ticker()
             info = t.info
-            # 確認拿到有效資料
-            if info and (info.get("currentPrice") or info.get("regularMarketPrice")):
-                return t, info
-            # info 空但沒例外 — 視為找不到代碼，不重試
             return t, info
         except Exception as e:
             last_exc = e
             err_str = str(e).lower()
-            if "too many requests" in err_str or "rate limit" in err_str:
-                time.sleep(2 ** attempt)  # 1s, 2s, 4s
-            else:
-                raise  # 非 rate-limit 錯誤直接往上拋
+            if "too many requests" not in err_str and "rate limit" not in err_str:
+                raise
     raise last_exc
 
 
@@ -106,6 +115,11 @@ def api_fetch():
 
     ticker_symbol = raw_ticker.replace(".", "-")
 
+    # 快取命中直接回傳
+    cached = _cache_get(ticker_symbol)
+    if cached:
+        return jsonify(cached)
+
     try:
         t, info = _fetch_ticker_with_retry(ticker_symbol)
     except Exception as e:
@@ -134,7 +148,7 @@ def api_fetch():
     except Exception:
         pass
 
-    return jsonify({
+    result = {
         "ticker": ticker_symbol,
         "name": name,
         "price": price,
@@ -145,7 +159,9 @@ def api_fetch():
         "currency": currency,
         "wacc": wacc,
         "growthNextYear": growth_next_year,
-    })
+    }
+    _cache_set(ticker_symbol, result)
+    return jsonify(result)
 
 
 @app.route("/api/wacc", methods=["POST"])
